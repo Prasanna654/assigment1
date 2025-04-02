@@ -6,4 +6,6 @@ route table
 edit subnet 
 select only one subnet whic is public which is only required public acccess
 create another route table and does not needed internet access
+vpc setup is completed
+create ec2
 
