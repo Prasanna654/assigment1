@@ -2,4 +2,8 @@ create vpc in 12.0.0.0 1
 create route 
 now create private and public subnet and internet gateway
 edit route to create internet access
+route table
+edit subnet 
+select only one subnet whic is public which is only required public acccess
+create another route table and does not needed internet access
 
