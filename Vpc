@@ -9,3 +9,70 @@ create another route table and does not needed internet access
 vpc setup is completed
 create ec2
 
+
+# Step 1: Update packages
+sudo apt-get update -y
+
+# Step 2: Install NFS client
+sudo apt-get -y install nfs-common
+
+# Step 3: Create a directory to mount the EFS
+sudo mkdir /efs
+
+# Step 4: Mount the EFS to /efs (replace the DNS with your EFS endpoint if different)
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-0df91a5c9dc35f4fd.efs.us-east-1.amazonaws.com:/ /efs
+
+# Step 5: Check if EFS is mounted (FIXED the wrong dash in original)
+sudo df -h
+
+# Step 6: Navigate into the EFS mount and create a test file
+cd /efs
+sudo touch ubuntu-file.txt
+
+
+
+# Step 1: Update the system packages
+sudo yum update -y
+
+# Step 2: Install NFS utilities
+sudo yum -y install nfs-utils
+
+# Step 3: Create a directory to mount EFS
+sudo mkdir /efs
+
+# Step 4: Mount the EFS using DNS (make sure the EFS DNS is in the same region)
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-0df91a5c9dc35f4fd.efs.us-east-1.amazonaws.com:/ /efs
+
+# Step 5: Verify that the EFS is mounted correctly
+sudo df -h  # FIXED: Use hyphen `-`, not en dash `–`
+
+# Step 6: Go into the mounted directory
+cd /efs
+
+# Step 7: Create a test file to confirm write access
+sudo touch amazon-linux-file.txt
+
+# Step 1: Update the system packages
+sudo yum update -y
+
+# Step 2: Install NFS utilities
+sudo yum -y install nfs-utils
+
+# Step 3: Create a directory to mount the EFS
+sudo mkdir /efs
+
+# Step 4: Mount the EFS using its DNS name (ensure it's in the same region as the instance)
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-0df91a5c9dc35f4fd.efs.us-east-1.amazonaws.com:/ /efs
+
+# Step 5: Check that the EFS mount was successful
+sudo df -h  # FIXED: replaced en dash (–) with a correct hyphen (-)
+
+# Step 6: Navigate to the mounted EFS directory
+cd /efs
+
+# Step 7: Create a test file to verify write access
+sudo touch redhat-linux-file.txt  # FIXED: extension was
+
+
+
+
