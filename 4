@@ -1,0 +1,544 @@
+🟢 PART 1: PRODUCTION NETWORK
+✅ Step 1: Create a New VPC (Production)
+Name: prod-vpc
+
+CIDR block: e.g., 10.0.0.0/16
+
+Enable DNS hostname & resolution.
+
+✅ Step 2: Create 5 Subnets
+Subnet Name	CIDR Block	Type	AZ
+web	10.0.1.0/24	Public	eu-west-2a
+app1	10.0.2.0/24	Private	eu-west-2a
+app2	10.0.3.0/24	Private	eu-west-2a
+dbcache	10.0.4.0/24	Private	eu-west-2a
+db	10.0.5.0/24	Private	eu-west-2a
+
+Tip: Use same AZ (eu-west-2a) for simplicity unless you need high availability.
+
+✅ Step 3: Create and Attach Internet Gateway
+Create an Internet Gateway named prod-igw.
+
+Attach it to prod-vpc.
+
+✅ Step 4: Create Route Tables
+1. Public Route Table (for web subnet)
+Name: prod-public-rt
+
+Add route:
+
+Destination: 0.0.0.0/0
+
+Target: Internet Gateway
+
+Associate with web subnet.
+
+2. Private Route Table (for NAT)
+Create a NAT Gateway in web subnet (you need an Elastic IP for this).
+
+Create route table: prod-private-rt
+
+Route:
+
+Destination: 0.0.0.0/0
+
+Target: NAT Gateway
+
+Associate with app1 and dbcache subnets only.
+
+app2 and db will not have internet access.
+
+✅ Step 5: Launch EC2 Instances
+For each subnet:
+
+Launch one EC2 instance:
+
+Amazon Linux 2 or OS of your choice.
+
+Name it the same as subnet (e.g., app1, db, etc.).
+
+Choose appropriate subnet.
+
+Enable Auto-assign Public IP only for web subnet.
+
+✅ Step 6: Configure Security Groups
+Create separate SGs for:
+
+web-sg (Public-facing instance)
+Inbound: allow HTTP (80), SSH (22) from your IP
+
+Outbound: allow all
+
+private-sg (used by app1, app2, dbcache, db)
+Inbound: only from web-sg or other internal SGs as needed
+
+Outbound: allow all (limited by NACLs)
+
+✅ Step 7: Configure NACLs
+Set up NACLs for additional control (optional for base setup):
+
+Public subnet (web): allow in/out for HTTP, HTTPS, SSH
+
+Private subnets (app1 & dbcache): allow outbound to internet via NAT
+
+Private subnets (app2, db): block outbound internet (no NAT route)
+
+🔵 PART 2: DEVELOPMENT NETWORK
+✅ Step 1: Create VPC (Development)
+Name: dev-vpc
+
+CIDR block: e.g., 10.1.0.0/16
+
+✅ Step 2: Create 2 Subnets
+Subnet Name	CIDR Block	Type
+web	10.1.1.0/24	Public
+db	10.1.2.0/24	Private
+
+✅ Step 3: Internet Access Setup
+Create and attach Internet Gateway: dev-igw
+
+Route table:
+
+Associate it only with web subnet.
+
+Add route to 0.0.0.0/0 via IGW
+
+Do not attach NAT gateway → db subnet cannot access internet.
+
+✅ Step 4: Launch EC2 Instances
+Launch 1 EC2 instance in each:
+
+Subnet: web → Name: web
+
+Subnet: db → Name: db
+
+Set up security groups like before:
+
+dev-web-sg: allow HTTP/SSH
+
+dev-db-sg: internal-only access
+
+🔁 VPC Peering Between Production & Development
+✅ Step 1: Create VPC Peering Connection
+Go to VPC Dashboard → Peering Connections.
+
+Create a new peering:
+
+Requester: prod-vpc
+
+Accepter: dev-vpc
+
+Accept the request.
+
+✅ Step 2: Update Route Tables
+Update route tables in both VPCs to route to each other:
+
+In prod-private-rt (used by db subnet):
+Destination: 10.1.0.0/16 → Target: Peering connection
+
+In dev-private-rt (used by db subnet):
+Destination: 10.0.0.0/16 → Target: Peering connection
+
+🔄 Connect Production DB ↔ Development DB
+Ensure security groups for prod-db and dev-db instances:
+
+Allow inbound access from each other’s private IP ranges or SGs on required ports (e.g., MySQL: 3306)
+
+Test connectivity using telnet or nc from one to another.
+
+✅ Summary
+Task	Status
+4-tier prod VPC + 5 subnets	✅ Done
+NAT + IGW setup	✅ Done
+Internet access for app1, dbcache	✅ Done
+EC2 instances in all subnets	✅ Done
+Dev VPC with 2 subnets	✅ Done
+Internet only from dev-web	✅ Done
+Peering between VPCs	✅ Done
+DB-to-DB communication enabled	✅ Done
+
+Would you like Terraform or CloudFormation templates to automate all of this?
+
+
+
+
+You said:
+yes
+
+ChatGPT said:
+Failed to generate
+To use ChatGPT canvas and generate the Terraform or CloudFormation code, you'll need to log in to ChatGPT. Once you're logged in, I can open a canvas for you to build and edit infrastructure code together.
+
+Would you prefer Terraform or CloudFormation for this setup?
+
+
+
+You said:
+yes
+
+ChatGPT said:
+Awesome! Since you said "yes," just let me know:
+
+Do you want Terraform or CloudFormation?
+
+Or both, if you'd like?
+
+Once you confirm, and you're logged in, I can start building the full infrastructure code for your production and development VPCs with all the details we discussed.
+
+
+
+You said:
+yes
+
+ Terraform code for the full setup including:
+
+Production VPC (4-tier, 5 subnets, NAT, IGW)
+
+Development VPC (2-tier, 2 subnets, IGW)
+
+VPC peering and routing
+
+EC2 instances in each subnet
+
+I’ll prepare the main.tf and split resources clearly for you. Give me a moment to put this together.
+
+Here's a basic Terraform setup for your requirements. This includes:
+
+Production VPC with 5 subnets (4 private + 1 public)
+
+Development VPC with 2 subnets (1 public + 1 private)
+
+Internet Gateway & NAT Gateway in production and development networks as required
+
+VPC peering and routing between production and development VPCs
+
+EC2 instances launched in each subnet named accordingly
+
+hcl
+Copy
+Edit
+provider "aws" {
+  region = "eu-west-2"
+}
+
+# === Production VPC ===
+resource "aws_vpc" "prod" {
+  cidr_block = "10.0.0.0/16"
+  tags = { Name = "prod-vpc" }
+}
+
+resource "aws_internet_gateway" "prod_igw" {
+  vpc_id = aws_vpc.prod.id
+  tags = { Name = "prod-igw" }
+}
+
+resource "aws_subnet" "prod_web" {
+  vpc_id     = aws_vpc.prod.id
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "eu-west-2a"
+  map_public_ip_on_launch = true
+  tags = { Name = "web" }
+}
+
+resource "aws_subnet" "prod_app1" {
+  vpc_id     = aws_vpc.prod.id
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "eu-west-2a"
+  tags = { Name = "app1" }
+}
+
+resource "aws_subnet" "prod_app2" {
+  vpc_id     = aws_vpc.prod.id
+  cidr_block = "10.0.3.0/24"
+  availability_zone = "eu-west-2a"
+  tags = { Name = "app2" }
+}
+
+resource "aws_subnet" "prod_dbcache" {
+  vpc_id     = aws_vpc.prod.id
+  cidr_block = "10.0.4.0/24"
+  availability_zone = "eu-west-2a"
+  tags = { Name = "dbcache" }
+}
+
+resource "aws_subnet" "prod_db" {
+  vpc_id     = aws_vpc.prod.id
+  cidr_block = "10.0.5.0/24"
+  availability_zone = "eu-west-2a"
+  tags = { Name = "db" }
+}
+
+# Route table for public subnet
+resource "aws_route_table" "prod_public_rt" {
+  vpc_id = aws_vpc.prod.id
+  tags = { Name = "prod-public-rt" }
+}
+
+resource "aws_route" "prod_public_internet_access" {
+  route_table_id         = aws_route_table.prod_public_rt.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.prod_igw.id
+}
+
+resource "aws_route_table_association" "prod_web_assoc" {
+  subnet_id      = aws_subnet.prod_web.id
+  route_table_id = aws_route_table.prod_public_rt.id
+}
+
+# Elastic IP for NAT Gateway
+resource "aws_eip" "prod_nat_eip" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "prod_nat" {
+  allocation_id = aws_eip.prod_nat_eip.id
+  subnet_id     = aws_subnet.prod_web.id
+  tags = { Name = "prod-nat" }
+}
+
+# Private route table for app1 and dbcache
+resource "aws_route_table" "prod_private_rt" {
+  vpc_id = aws_vpc.prod.id
+  tags = { Name = "prod-private-rt" }
+}
+
+resource "aws_route" "prod_private_nat_route" {
+  route_table_id         = aws_route_table.prod_private_rt.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.prod_nat.id
+}
+
+resource "aws_route_table_association" "prod_app1_assoc" {
+  subnet_id      = aws_subnet.prod_app1.id
+  route_table_id = aws_route_table.prod_private_rt.id
+}
+
+resource "aws_route_table_association" "prod_dbcache_assoc" {
+  subnet_id      = aws_subnet.prod_dbcache.id
+  route_table_id = aws_route_table.prod_private_rt.id
+}
+
+# app2 and db are private without NAT (no internet)
+
+# Security groups
+resource "aws_security_group" "prod_web_sg" {
+  name        = "prod-web-sg"
+  description = "Allow HTTP and SSH from anywhere"
+  vpc_id      = aws_vpc.prod.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["YOUR_IP/32"]  # Replace with your IP for SSH
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "prod_private_sg" {
+  name        = "prod-private-sg"
+  description = "Allow internal traffic only"
+  vpc_id      = aws_vpc.prod.id
+
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.prod_web_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# EC2 Instances in Production subnets
+resource "aws_instance" "prod_web" {
+  ami           = "ami-0c5199d385b432989" # Amazon Linux 2 in eu-west-2, replace if needed
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.prod_web.id
+  associate_public_ip_address = true
+  vpc_security_group_ids = [aws_security_group.prod_web_sg.id]
+  tags = { Name = "web" }
+}
+
+resource "aws_instance" "prod_app1" {
+  ami           = "ami-0c5199d385b432989"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.prod_app1.id
+  vpc_security_group_ids = [aws_security_group.prod_private_sg.id]
+  tags = { Name = "app1" }
+}
+
+resource "aws_instance" "prod_app2" {
+  ami           = "ami-0c5199d385b432989"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.prod_app2.id
+  vpc_security_group_ids = [aws_security_group.prod_private_sg.id]
+  tags = { Name = "app2" }
+}
+
+resource "aws_instance" "prod_dbcache" {
+  ami           = "ami-0c5199d385b432989"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.prod_dbcache.id
+  vpc_security_group_ids = [aws_security_group.prod_private_sg.id]
+  tags = { Name = "dbcache" }
+}
+
+resource "aws_instance" "prod_db" {
+  ami           = "ami-0c5199d385b432989"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.prod_db.id
+  vpc_security_group_ids = [aws_security_group.prod_private_sg.id]
+  tags = { Name = "db" }
+}
+
+# === Development VPC ===
+resource "aws_vpc" "dev" {
+  cidr_block = "10.1.0.0/16"
+  tags = { Name = "dev-vpc" }
+}
+
+resource "aws_internet_gateway" "dev_igw" {
+  vpc_id = aws_vpc.dev.id
+  tags = { Name = "dev-igw" }
+}
+
+resource "aws_subnet" "dev_web" {
+  vpc_id     = aws_vpc.dev.id
+  cidr_block = "10.1.1.0/24"
+  availability_zone = "eu-west-2a"
+  map_public_ip_on_launch = true
+  tags = { Name = "web" }
+}
+
+resource "aws_subnet" "dev_db" {
+  vpc_id     = aws_vpc.dev.id
+  cidr_block = "10.1.2.0/24"
+  availability_zone = "eu-west-2a"
+  tags = { Name = "db" }
+}
+
+resource "aws_route_table" "dev_public_rt" {
+  vpc_id = aws_vpc.dev.id
+  tags = { Name = "dev-public-rt" }
+}
+
+resource "aws_route" "dev_public_internet_access" {
+  route_table_id         = aws_route_table.dev_public_rt.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.dev_igw.id
+}
+
+resource "aws_route_table_association" "dev_web_assoc" {
+  subnet_id      = aws_subnet.dev_web.id
+  route_table_id = aws_route_table.dev_public_rt.id
+}
+
+# Security groups for dev
+resource "aws_security_group" "dev_web_sg" {
+  name        = "dev-web-sg"
+  description = "Allow HTTP and SSH from anywhere"
+  vpc_id      = aws_vpc.dev.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["YOUR_IP/32"] # Replace with your IP
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "dev_db_sg" {
+  name        = "dev-db-sg"
+  description = "Allow internal traffic only"
+  vpc_id      = aws_vpc.dev.id
+
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.dev_web_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# EC2 instances in dev
+resource "aws_instance" "dev_web" {
+  ami           = "ami-0c5199d385b432989"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.dev_web.id
+  associate_public_ip_address = true
+  vpc_security_group_ids = [aws_security_group.dev_web_sg.id]
+  tags = { Name = "web" }
+}
+
+resource "aws_instance" "dev_db" {
+  ami           = "ami-0c5199d385b432989"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.dev_db.id
+  vpc_security_group_ids = [aws_security_group.dev_db_sg.id]
+  tags = { Name = "db" }
+}
+
+# === VPC Peering ===
+resource "aws_vpc_peering_connection" "prod_dev" {
+  vpc_id        = aws_vpc.prod.id
+  peer_vpc_id   = aws_vpc.dev.id
+  auto_accept   = true
+
+  tags = {
+    Name = "prod-dev-peering"
+  }
+}
+
+# Add routes in prod private RT for dev VPC CIDR
+resource "aws_route" "prod_to_dev" {
+  route_table_id         = aws_route_table.prod_private_rt.id
+  destination_cidr_block = aws_vpc.dev.cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.prod_dev.id
+}
+
+# Create a route table for dev private (db) subnet to add peering route
+resource "aws_route_table" "dev_private_rt" {
+  vpc
+
+
+
