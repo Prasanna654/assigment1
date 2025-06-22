@@ -1,0 +1,108 @@
+Great! You're essentially asking to design a scalable cloud architecture using AWS services that:
+
+Automatically adds/removes compute resources based on CPU load.
+
+Distributes traffic using a load balancer.
+
+Routes traffic to your system efficiently.
+
+Let’s break it down step-by-step in simple, clear actions you can manually set up in the AWS Console.
+
+✅ 1. Set Up Auto Scaling Based on CPU Usage
+This ensures your system automatically scales up/down depending on CPU load.
+
+A. Create a Launch Template
+Go to EC2 Dashboard → Launch Templates → Create launch template.
+
+Fill in:
+
+Name: web-app-template
+
+AMI: Choose the Amazon Linux or your custom image.
+
+Instance type: e.g., t3.micro or as per your needs.
+
+Key pair, security group, IAM role, etc.
+
+Click Create launch template.
+
+B. Create an Auto Scaling Group
+Go to EC2 Dashboard → Auto Scaling Groups → Create Auto Scaling group.
+
+Select your launch template.
+
+Choose a VPC and subnets (2 or more AZs recommended).
+
+Click Next until you get to "Set scaling policies".
+
+C. Set Scaling Based on CPU Utilization
+Choose Target tracking scaling policy.
+
+Click Create a policy:
+
+Policy type: Add a target tracking policy.
+
+Metric type: Average CPU utilization
+
+Target value: 70% (this keeps it balanced between 80% and 60%)
+
+It will:
+
+Scale out if CPU > 80%
+
+Scale in if CPU < 60% (automatically adjusts around your target)
+
+You can also use step scaling for more precise thresholds (ask if you want help with that).
+
+✅ 2. Create a Load Balancer
+This distributes traffic across your instances.
+
+A. Go to EC2 → Load Balancers → Create Load Balancer
+Choose Application Load Balancer (best for web traffic).
+
+Name: company-lb
+
+Scheme: internet-facing
+
+Select 2 or more Availability Zones and subnets.
+
+Security Group:
+
+Allow HTTP (port 80) and/or HTTPS (port 443).
+
+Listener: Port 80 (default).
+
+Target Group:
+
+Create a new target group.
+
+Type: Instance
+
+Protocol: HTTP
+
+Register your Auto Scaling Group instances (automatically managed).
+
+Review and Create.
+
+✅ 3. Route Traffic to the Company
+Option A: Using Route 53 (Recommended)
+Go to Route 53 → Hosted Zones → Create/Select your domain.
+
+Create a Record Set:
+
+Type: A – IPv4 address
+
+Alias: Yes
+
+Alias Target: Select your Application Load Balancer
+
+Save record.
+
+Now traffic to www.company.com will go to your Load Balancer, which will route it to healthy instances.
+
+🔁 Summary
+Step	Description
+✅ 1	Launch template + Auto Scaling group
+✅ 2	CPU-based scaling: >80% → scale out, <60% → scale in
+✅ 3	Application Load Balancer to distribute traffic
+✅ 4	Route traffic using Route 53
