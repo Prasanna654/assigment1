@@ -1,0 +1,135 @@
+You work for XYZ Corporation. To maintain the security of the AWS account and
+the resources you have been asked to implement a solution that can help easily
+recognize and monitor the different users.
+Tasks To Be Performed:
+1. Create policy number 1 which lets the users to:
+a. Access S3 completely
+b. Only create EC2 instances
+c. Full access to RDS
+2. Create a policy number 2 which allows the users to:
+a. Access CloudWatch and billing completely
+b. Can only list EC2 and S3 resources
+
+ChatGPT said:
+Great! You're setting up IAM policies to help XYZ Corporation control user access and monitor activity. Here's a clear, manual explanation of how to implement both Policy #1 and Policy #2 using the AWS Console, step-by-step.
+
+🔐 Policy #1 — For Infrastructure and Database Access
+🎯 What It Allows:
+✅ Full access to S3
+
+✅ Only launching EC2 instances (not stopping/deleting)
+
+✅ Full access to RDS
+
+✅ Steps to Create Policy #1 Manually:
+Go to the IAM section in AWS Console.
+
+Click Policies → Create policy.
+
+Select the Visual editor tab.
+
+Under Service, search and select S3:
+
+Choose All S3 actions.
+
+Resource: All resources.
+
+Click Add additional permissions → Select EC2:
+
+Actions:
+
+Under “Write,” select: RunInstances.
+
+Under “Read” and “List,” select:
+
+DescribeInstances
+
+DescribeImages
+
+DescribeSecurityGroups
+
+DescribeSubnets
+
+DescribeVpcs
+
+DescribeKeyPairs
+
+DescribeInstanceTypes
+
+Resource: All resources.
+
+Click Add additional permissions → Select RDS:
+
+Choose All RDS actions.
+
+Resource: All resources.
+
+Click Next → Name it Policy-1-FullS3-CreateEC2-FullRDS.
+
+Click Create policy.
+
+🔐 Policy #2 — For Monitoring & Billing Access
+🎯 What It Allows:
+✅ Full access to CloudWatch and Billing
+
+✅ Can only view/list EC2 and S3 resources (not modify or delete)
+
+✅ Steps to Create Policy #2 Manually:
+Go to IAM → Policies → Create policy.
+
+Use the Visual editor.
+
+Under Service, select CloudWatch:
+
+Choose All CloudWatch actions.
+
+Resource: All resources.
+
+Click Add additional permissions → Select Billing (search for AWS Billing or aws-portal):
+
+Choose All billing actions.
+
+Resource: All resources.
+
+Click Add additional permissions → Select EC2:
+
+Under List and Read, check only:
+
+DescribeInstances
+
+DescribeVolumes
+
+DescribeSecurityGroups
+
+etc. (just view-only permissions — no write/delete actions)
+
+Click Add additional permissions → Select S3:
+
+Under List, select:
+
+ListAllMyBuckets
+
+ListBucket
+
+Under Read, optionally add:
+
+GetObject
+
+Resource: All resources.
+
+Click Next → Name it Policy-2-Monitoring-ListOnlyEC2S3.
+
+Click Create policy.
+
+✅ Next Step: Attach These Policies
+Once the policies are created:
+
+Go to IAM → Users or Groups.
+
+Select the user or group.
+
+Click Add permissions.
+
+Choose Attach policies directly.
+
+Select Policy-1... or Policy-2... as appropriate.
